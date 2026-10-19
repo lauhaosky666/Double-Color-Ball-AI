@@ -1,7 +1,7 @@
 {
   "prediction_date": "2026-10-20",
   "target_period": "26120",
-  "generated_at": "2026-10-19T14:16:57.405532+00:00",
+  "generated_at": "2026-10-19T15:35:25.553243+00:00",
   "generator_version": "offline-rules-1.0",
   "status": "offline",
   "failures": [],
@@ -450,6 +450,63 @@
       ],
       "target_period": "26120",
       "prediction_date": "2026-10-20"
+    },
+    {
+      "model_id": "frequency-consensus",
+      "model_name": "频率共识（本地）",
+      "requested_model": "frequency-consensus",
+      "response_model": "frequency-consensus",
+      "validation_status": "passed",
+      "predictions": [
+        {
+          "candidate_id": "F-1",
+          "group_id": 1,
+          "strategy": "频率共识 #1",
+          "red_balls": [
+            "08",
+            "14",
+            "21",
+            "22",
+            "23",
+            "28"
+          ],
+          "blue_ball": "03",
+          "description": "汇总 5 个模型共 25 组推荐；红球频次合计 67；蓝球 03 出现 5 次"
+        },
+        {
+          "candidate_id": "F-2",
+          "group_id": 2,
+          "strategy": "频率共识 #2",
+          "red_balls": [
+            "02",
+            "08",
+            "14",
+            "21",
+            "27",
+            "28"
+          ],
+          "blue_ball": "04",
+          "description": "汇总 5 个模型共 25 组推荐；红球频次合计 62；蓝球 04 出现 5 次"
+        },
+        {
+          "candidate_id": "F-3",
+          "group_id": 3,
+          "strategy": "频率共识 #3",
+          "red_balls": [
+            "04",
+            "08",
+            "21",
+            "22",
+            "27",
+            "28"
+          ],
+          "blue_ball": "08",
+          "description": "汇总 5 个模型共 25 组推荐；红球频次合计 62；蓝球 08 出现 5 次"
+        }
+      ],
+      "target_period": "26120",
+      "prediction_date": "2026-10-20"
     }
-  ]
+  ],
+  "ensemble_generated_at": "2026-10-19T15:35:25.663812+00:00"
 }

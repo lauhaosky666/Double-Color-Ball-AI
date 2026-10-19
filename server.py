@@ -6,6 +6,8 @@
 """
 
 import json
+import os
+import posixpath
 import subprocess
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -13,7 +15,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PYTHON = ROOT / ".venv" / "bin" / "python"
-HOST, PORT = "127.0.0.1", 8000
+HOST = os.environ.get("DCB_HOST", "0.0.0.0")
+PORT = int(os.environ.get("DCB_PORT", "8000"))
 
 
 def run_step(cmd, cwd, timeout):
@@ -27,14 +30,21 @@ def run_step(cmd, cwd, timeout):
 
 
 def update_all():
-    run_step([str(PYTHON), "fetch_lottery_history.py"], ROOT / "fetch_history", 180)
+    try:
+        run_step([str(PYTHON), "sync_upstream.py"], ROOT, 180)
+        source = "upstream"
+    except Exception:
+        run_step([str(PYTHON), "fetch_lottery_history.py"], ROOT / "fetch_history", 180)
+        source = "local"
     run_step([str(PYTHON), "offline_prediction.py"], ROOT, 120)
+    run_step([str(PYTHON), "ensemble_prediction.py"], ROOT, 120)
 
     history = json.loads((ROOT / "data/lottery_history.json").read_text(encoding="utf-8"))
     preds = json.loads((ROOT / "data/ai_predictions.json").read_text(encoding="utf-8"))
     latest = history["data"][0]
     return {
         "ok": True,
+        "source": source,
         "latest_period": latest["period"],
         "latest_date": latest["date"],
         "target_period": preds.get("target_period"),
@@ -46,6 +56,17 @@ def update_all():
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
+
+    def is_private_path(self):
+        path = posixpath.normpath(self.path.split("?", 1)[0])
+        return any(part.startswith(".") for part in path.split("/") if part)
+
+    def send_head(self):
+        # 阻止 .env、.git、.venv 等隐藏文件被局域网访问
+        if self.is_private_path():
+            self.send_error(404, "File not found")
+            return None
+        return super().send_head()
 
     def end_headers(self):
         if self.path.endswith(".json") or self.path.startswith("/api/"):
