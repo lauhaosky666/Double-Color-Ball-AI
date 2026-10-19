@@ -10,7 +10,7 @@ const DataLoader = {
      */
     async loadLotteryHistory() {
         try {
-            const response = await fetch('./data/lottery_history.json');
+            const response = await fetch('./data/lottery_history.json?v=' + Date.now());
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -29,7 +29,7 @@ const DataLoader = {
      */
     async loadPredictions() {
         try {
-            const response = await fetch('./data/ai_predictions.json');
+            const response = await fetch('./data/ai_predictions.json?v=' + Date.now());
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -48,7 +48,7 @@ const DataLoader = {
      */
     async loadPredictionsHistory() {
         try {
-            const response = await fetch('./data/predictions_history.json');
+            const response = await fetch('./data/predictions_history.json?v=' + Date.now());
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
