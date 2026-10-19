@@ -40,5 +40,11 @@ Thumbs.db
 # Environment variables
 .env
 
+# Local virtualenv
+.venv/
+
+# Local backups created by update scripts
+*_backup_*.json
+
 # Claude local settings
 .claude/settings.local.json

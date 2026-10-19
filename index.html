@@ -7,6 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css?v=20260922a">
+    <style>
+        #syncBtn:disabled { opacity: .6; cursor: wait; }
+        #syncBtn.syncing svg { animation: sync-spin 1s linear infinite; }
+        @keyframes sync-spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -50,6 +55,12 @@
                                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
                             </svg>
                             历史回溯
+                        </button>
+                        <button id="syncBtn" class="nav-item" title="抓取最新开奖并生成预测">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+                            </svg>
+                            同步数据
                         </button>
                     </div>
                 </div>
@@ -436,5 +447,30 @@
     <script src="js/data-loader.js?v=20251124c"></script>
     <script src="js/components.js?v=20251124c"></script>
     <script src="js/app.js?v=20260922a"></script>
+    <script>
+    (function () {
+        const btn = document.getElementById('syncBtn');
+        if (!btn) return;
+        const original = btn.innerHTML;
+        btn.addEventListener('click', async function () {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btn.classList.add('syncing');
+            btn.innerHTML = '同步中...';
+            try {
+                const res = await fetch('/api/update', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.error || '同步失败');
+                btn.innerHTML = '完成 ' + data.latest_period;
+                setTimeout(function () { location.reload(); }, 700);
+            } catch (err) {
+                alert('同步失败：' + err.message);
+                btn.disabled = false;
+                btn.classList.remove('syncing');
+                btn.innerHTML = original;
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
