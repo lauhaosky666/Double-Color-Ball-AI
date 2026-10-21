@@ -10,17 +10,11 @@ on run
 
 	if statusCode is not "200" then
 		try
-			do shell script "launchctl remove com.lauhaosky.dcb"
+			set uidText to do shell script "id -u"
+			do shell script "launchctl kickstart -k gui/" & uidText & "/com.lauhaosky.dcb"
 		end try
-		-- 清理占用 8000 端口的残留进程（该端口专供本面板使用）
-		try
-			do shell script "pids=$(lsof -ti tcp:8000 || true); if [ -n \"$pids\" ]; then kill $pids; sleep 1; fi"
-		end try
-		try
-			do shell script "launchctl submit -l com.lauhaosky.dcb -- " & quoted form of (panelDir & "/.venv/bin/python") & " " & quoted form of (panelDir & "/server.py")
-		end try
-		repeat 15 times
-			delay 1
+		repeat 25 times
+			delay 2
 			set statusCode to "000"
 			try
 				set statusCode to do shell script statusCmd
@@ -32,6 +26,6 @@ on run
 	if statusCode is "200" then
 		do shell script "open " & quoted form of "http://localhost:8000"
 	else
-		display dialog "本地服务没能启动，请查看 /tmp/dcb_server.log。" buttons {"好"} default button 1 with icon caution
+		display dialog "服务还在启动中，刚开机时可能需要多等一会儿。请稍后重新双击快捷方式。" buttons {"好"} default button 1 with icon note
 	end if
 end run
