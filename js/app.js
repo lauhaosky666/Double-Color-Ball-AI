@@ -6,7 +6,8 @@
 let appData = {
     lotteryHistory: null,
     aiPredictions: null,
-    predictionsHistory: null
+    predictionsHistory: null,
+    historyFilter: { red: true, blue: true }
 };
 
 // 初始化应用
@@ -154,6 +155,21 @@ function renderAccuracyChart() {
     const chartEl = document.getElementById('accuracyChart');
     if (!chartEl) return;
 
+    const filter = appData.historyFilter || { red: true, blue: true };
+    const blueOnly = !filter.red && filter.blue;
+    const descriptionEl = document.getElementById('accuracyChartDescription');
+    if (descriptionEl) {
+        if (filter.red && filter.blue) {
+            descriptionEl.textContent = '红球 + 蓝球 · 每期最佳组合的命中表现';
+        } else if (filter.red) {
+            descriptionEl.textContent = '红球 · 每期最佳组合的红球命中数';
+        } else if (filter.blue) {
+            descriptionEl.textContent = '蓝球 · 每期最佳组合的蓝球命中数';
+        } else {
+            descriptionEl.textContent = '未选择号码类型';
+        }
+    }
+
     // 准备图表数据
     const chartData = prepareChartData();
     const fontFamily = getComputedStyle(chartEl).fontFamily;
@@ -225,7 +241,7 @@ function renderAccuracyChart() {
                 },
                 y: {
                     beginAtZero: true,
-                    max: 7,
+                    max: blueOnly ? 1 : 7,
                     border: { display: false, dash: [4, 5] },
                     grid: { color: '#edf0f7', drawTicks: false },
                     ticks: {
@@ -275,6 +291,16 @@ function renderAccuracyChart() {
     });
 }
 
+// 按当前红球/蓝球勾选计算单条预测的命中数
+function selectedHitCount(hit) {
+    if (!hit) return 0;
+    const filter = appData.historyFilter || { red: true, blue: true };
+    let count = 0;
+    if (filter.red) count += hit.red_hit_count || 0;
+    if (filter.blue) count += hit.blue_hit ? 1 : 0;
+    return count;
+}
+
 // 准备图表数据
 function prepareChartData() {
     const history = appData.predictionsHistory.predictions_history;
@@ -297,7 +323,7 @@ function prepareChartData() {
             }
 
             // 按期号对齐；缺失期保持空值，随机模拟不计入 AI 模型表现。
-            const bestHit = Math.max(...model.predictions.map(p => p.hit_result?.total_hits || 0));
+            const bestHit = Math.max(...model.predictions.map(p => selectedHitCount(p.hit_result)));
             series.get(key).data[periodIndex] = bestHit;
         });
     });
@@ -755,8 +781,14 @@ function setupEventListeners() {
     const historyTab = document.querySelector('.tab-content[data-tab="history"]');
     const applyHistoryFilter = () => {
         if (!historyTab) return;
-        historyTab.classList.toggle('hide-red', !(redFilter && redFilter.checked));
-        historyTab.classList.toggle('hide-blue', !(blueFilter && blueFilter.checked));
+        const redOn = redFilter ? redFilter.checked : true;
+        const blueOn = blueFilter ? blueFilter.checked : true;
+        appData.historyFilter = { red: redOn, blue: blueOn };
+        historyTab.classList.toggle('hide-red', !redOn);
+        historyTab.classList.toggle('hide-blue', !blueOn);
+        if (historyTab.classList.contains('active')) {
+            renderAccuracyChart();
+        }
     };
     if (redFilter) redFilter.addEventListener('change', applyHistoryFilter);
     if (blueFilter) blueFilter.addEventListener('change', applyHistoryFilter);
