@@ -949,6 +949,61 @@ body::after {
     color: var(--indigo-600);
 }
 
+.history-ball-filters {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ball-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--slate-200, #e2e8f0);
+    border-radius: 9999px;
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--slate-600, #475569);
+    cursor: pointer;
+    user-select: none;
+}
+
+.ball-filter input {
+    margin: 0;
+    width: 14px;
+    height: 14px;
+    accent-color: var(--indigo-600, #4f46e5);
+    cursor: pointer;
+}
+
+.ball-filter-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.ball-filter-dot.red {
+    background: #ef4444;
+}
+
+.ball-filter-dot.blue {
+    background: #3b82f6;
+}
+
+/* 历史回溯页的红球/蓝球显示开关 */
+.tab-content[data-tab="history"].hide-red .lottery-ball.red {
+    display: none;
+}
+
+.tab-content[data-tab="history"].hide-blue .lottery-ball.blue {
+    display: none;
+}
+
 .section-icon svg {
     width: 24px;
     height: 24px;

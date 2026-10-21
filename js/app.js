@@ -748,6 +748,19 @@ function setupEventListeners() {
     mobileNavItems.forEach(item => {
         item.addEventListener('click', () => handleTabSwitch(item.dataset.tab, mobileNavItems));
     });
+
+    // 历史回溯：红球/蓝球显示开关
+    const redFilter = document.getElementById('historyFilterRed');
+    const blueFilter = document.getElementById('historyFilterBlue');
+    const historyTab = document.querySelector('.tab-content[data-tab="history"]');
+    const applyHistoryFilter = () => {
+        if (!historyTab) return;
+        historyTab.classList.toggle('hide-red', !(redFilter && redFilter.checked));
+        historyTab.classList.toggle('hide-blue', !(blueFilter && blueFilter.checked));
+    };
+    if (redFilter) redFilter.addEventListener('change', applyHistoryFilter);
+    if (blueFilter) blueFilter.addEventListener('change', applyHistoryFilter);
+    applyHistoryFilter();
 }
 
 // 处理Tab切换
