@@ -1,7 +1,7 @@
 {
   "prediction_date": "2026-10-22",
   "target_period": "26121",
-  "generated_at": "2026-10-21T17:54:18.753042+00:00",
+  "generated_at": "2026-10-22T01:56:25.346076+00:00",
   "generator_version": "offline-rules-1.0",
   "status": "offline",
   "failures": [],
@@ -508,5 +508,5 @@
       "prediction_date": "2026-10-22"
     }
   ],
-  "ensemble_generated_at": "2026-10-21T17:54:18.792097+00:00"
+  "ensemble_generated_at": "2026-10-22T01:56:25.400266+00:00"
 }
