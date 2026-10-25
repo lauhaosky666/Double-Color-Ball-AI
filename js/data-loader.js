@@ -11,8 +11,16 @@ const DataLoader = {
         'predictions_history.json'
     ],
     CLOUD_DATA_SOURCES: [
-        'https://raw.githubusercontent.com/sinyu1012/Double-Color-Ball-AI/main/data/',
-        'https://raw.githubusercontent.com/lauhaosky666/Double-Color-Ball-AI/main/data/'
+        {
+            label: '上游最新数据',
+            repository: 'sinyu1012/Double-Color-Ball-AI',
+            branch: 'main'
+        },
+        {
+            label: '本站发布数据',
+            base: './data/',
+            query: true
+        }
     ],
 
     readCloudCache() {
@@ -25,16 +33,51 @@ const DataLoader = {
         }
     },
 
-    async fetchJson(url) {
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+    async fetchJson(url, timeoutMs = 20000) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch(url, {
+                cache: 'no-store',
+                signal: controller.signal
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('请求超时');
+            }
+            throw error;
+        } finally {
+            clearTimeout(timer);
         }
-        return response.json();
     },
 
     async loadStaticJson(filename) {
         return this.fetchJson(`./data/${filename}?v=${Date.now()}`);
+    },
+
+    async getCloudBase(source) {
+        if (source.base) return source.base;
+
+        const fallbackBase =
+            `https://cdn.jsdelivr.net/gh/${source.repository}@${source.branch}/data/`;
+        try {
+            const ref = await this.fetchJson(
+                `https://api.github.com/repos/${source.repository}/git/ref/heads/${source.branch}`,
+                8000
+            );
+            if (!ref?.object?.sha) {
+                throw new Error('未取得最新版本号');
+            }
+            return `https://cdn.jsdelivr.net/gh/${source.repository}@${ref.object.sha}/data/`;
+        } catch (error) {
+            console.warn('获取固定数据版本失败，改用 CDN 分支版本:', error);
+            return fallbackBase;
+        }
     },
 
     validateCloudData(lottery, predictions, predictionsHistory) {
@@ -76,10 +119,12 @@ const DataLoader = {
 
         for (const source of this.CLOUD_DATA_SOURCES) {
             try {
+                const base = await this.getCloudBase(source);
+                const query = source.query ? `?t=${Date.now()}` : '';
                 const [lottery, upstreamPredictions, predictionsHistory] =
                     await Promise.all(
                         this.CLOUD_DATA_FILES.map(filename =>
-                            this.fetchJson(`${source}${filename}?t=${Date.now()}`)
+                            this.fetchJson(`${base}${filename}${query}`)
                         )
                     );
 
@@ -98,7 +143,7 @@ const DataLoader = {
 
                 const cache = {
                     savedAt: new Date().toISOString(),
-                    source,
+                    source: source.label,
                     latest_period: lottery.data[0].period,
                     latest_date: lottery.data[0].date,
                     target_period: predictions.target_period,
@@ -121,7 +166,7 @@ const DataLoader = {
                 };
             } catch (error) {
                 errors.push(error.message);
-                console.warn('云端数据源同步失败:', source, error);
+                console.warn('云端数据源同步失败:', source.label, error);
             }
         }
 
