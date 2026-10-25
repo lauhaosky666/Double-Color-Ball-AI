@@ -1,6 +1,8 @@
 # 双色球开奖与 AI 预测数据展示系统
 
-> 在线访问：[https://double-color-ball-ai.vercel.app](https://double-color-ball-ai.vercel.app)
+> 公网访问：[https://lauhaosky666.github.io/Double-Color-Ball-AI/](https://lauhaosky666.github.io/Double-Color-Ball-AI/)
+
+手机可在任意网络直接打开；“同步数据”会读取公开上游数据并缓存在当前设备，不依赖电脑或家庭 Wi-Fi。
 
 <img src="images/image1.jpg" width="70%">
 
