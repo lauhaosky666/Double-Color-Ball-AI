@@ -33,6 +33,34 @@ const DataLoader = {
         }
     },
 
+    latestLotteryPeriod(lottery) {
+        if (!lottery || !Array.isArray(lottery.data)) return 0;
+        return lottery.data.reduce(
+            (latest, draw) => Math.max(latest, Number(draw.period) || 0),
+            0
+        );
+    },
+
+    latestPredictionPeriod(predictions) {
+        if (!predictions) return 0;
+        return Number(predictions.target_period) || 0;
+    },
+
+    latestHistoryPeriod(history) {
+        if (!history || !Array.isArray(history.predictions_history)) return 0;
+        return history.predictions_history.reduce(
+            (latest, record) =>
+                Math.max(latest, Number(record.target_period) || 0),
+            0
+        );
+    },
+
+    preferCached(cached, published, getPeriod) {
+        if (!cached) return published;
+        if (!published) return cached;
+        return getPeriod(cached) >= getPeriod(published) ? cached : published;
+    },
+
     async fetchJson(url, timeoutMs = 20000) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -180,8 +208,15 @@ const DataLoader = {
     async loadLotteryHistory() {
         try {
             const cache = this.readCloudCache();
-            const data = cache?.data?.lottery_history ||
-                await this.loadStaticJson('lottery_history.json');
+            const [published, cached] = await Promise.all([
+                this.loadStaticJson('lottery_history.json'),
+                Promise.resolve(cache?.data?.lottery_history)
+            ]);
+            const data = this.preferCached(
+                cached,
+                published,
+                this.latestLotteryPeriod
+            );
             console.log('历史开奖数据加载成功', data);
             return data;
         } catch (error) {
@@ -197,8 +232,15 @@ const DataLoader = {
     async loadPredictions() {
         try {
             const cache = this.readCloudCache();
-            const data = cache?.data?.ai_predictions ||
-                await this.loadStaticJson('ai_predictions.json');
+            const [published, cached] = await Promise.all([
+                this.loadStaticJson('ai_predictions.json'),
+                Promise.resolve(cache?.data?.ai_predictions)
+            ]);
+            const data = this.preferCached(
+                cached,
+                published,
+                this.latestPredictionPeriod
+            );
             console.log('AI 预测数据加载成功', data);
             return data;
         } catch (error) {
@@ -214,8 +256,15 @@ const DataLoader = {
     async loadPredictionsHistory() {
         try {
             const cache = this.readCloudCache();
-            const data = cache?.data?.predictions_history ||
-                await this.loadStaticJson('predictions_history.json');
+            const [published, cached] = await Promise.all([
+                this.loadStaticJson('predictions_history.json'),
+                Promise.resolve(cache?.data?.predictions_history)
+            ]);
+            const data = this.preferCached(
+                cached,
+                published,
+                this.latestHistoryPeriod
+            );
             console.log('历史预测对比数据加载成功', data);
             return data;
         } catch (error) {
