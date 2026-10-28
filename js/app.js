@@ -43,7 +43,11 @@ async function loadAllData() {
 
         appData.lotteryHistory = lotteryHistory;
         appData.aiPredictions = aiPredictions;
-        appData.predictionsHistory = predictionsHistory;
+        appData.predictionsHistory = DataLoader.ensureCompletedPredictions(
+            predictionsHistory,
+            lotteryHistory,
+            aiPredictions
+        );
     } catch (error) {
         console.error('数据加载失败:', error);
         throw error;

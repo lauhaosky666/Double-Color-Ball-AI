@@ -61,6 +61,88 @@ const DataLoader = {
         return getPeriod(cached) >= getPeriod(published) ? cached : published;
     },
 
+    calculateHitResult(prediction, actualResult) {
+        const actualReds = new Set(actualResult.red_balls);
+        const redHits = prediction.red_balls.filter(ball => actualReds.has(ball));
+        const blueHit = prediction.blue_ball === actualResult.blue_ball;
+        return {
+            red_hits: redHits,
+            red_hit_count: redHits.length,
+            blue_hit: blueHit,
+            total_hits: redHits.length + Number(blueHit)
+        };
+    },
+
+    ensureCompletedPredictions(history, lottery, ...predictionDocuments) {
+        if (
+            !history ||
+            !Array.isArray(history.predictions_history) ||
+            !lottery ||
+            !Array.isArray(lottery.data)
+        ) {
+            return history;
+        }
+
+        const records = [...history.predictions_history];
+        const knownPeriods = new Set(records.map(record => String(record.target_period)));
+        const drawsByPeriod = new Map(
+            lottery.data.map(draw => [String(draw.period), draw])
+        );
+
+        for (const predictions of predictionDocuments) {
+            const period = String(predictions?.target_period || '');
+            const actualResult = drawsByPeriod.get(period);
+            if (
+                !period ||
+                !actualResult ||
+                knownPeriods.has(period) ||
+                !Array.isArray(predictions.models) ||
+                predictions.models.length === 0
+            ) {
+                continue;
+            }
+
+            const archivedModels = predictions.models
+                .filter(model => Array.isArray(model.predictions) && model.predictions.length > 0)
+                .map(model => {
+                    const archivedPredictions = model.predictions.map(prediction => ({
+                        ...prediction,
+                        hit_result: this.calculateHitResult(prediction, actualResult)
+                    }));
+                    const best = archivedPredictions.reduce(
+                        (current, prediction) =>
+                            prediction.hit_result.total_hits >
+                            current.hit_result.total_hits
+                                ? prediction
+                                : current
+                    );
+                    return {
+                        ...model,
+                        predictions: archivedPredictions,
+                        best_group: best.group_id,
+                        best_hit_count: best.hit_result.total_hits
+                    };
+                });
+
+            if (archivedModels.length === 0) continue;
+
+            const record = {
+                prediction_date: predictions.prediction_date,
+                target_period: period,
+                actual_result: actualResult,
+                models: archivedModels
+            };
+            for (const key of ['generated_at', 'generator_version', 'input_fingerprint']) {
+                if (predictions[key]) record[key] = predictions[key];
+            }
+
+            records.unshift(record);
+            knownPeriods.add(period);
+        }
+
+        return { ...history, predictions_history: records };
+    },
+
     async fetchJson(url, timeoutMs = 20000) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -144,6 +226,8 @@ const DataLoader = {
 
     async syncFromCloud() {
         const errors = [];
+        const cachedPredictions =
+            this.readCloudCache()?.data?.ai_predictions || null;
 
         for (const source of this.CLOUD_DATA_SOURCES) {
             try {
@@ -167,7 +251,13 @@ const DataLoader = {
                     upstreamPredictions,
                     localPredictions
                 );
-                this.validateCloudData(lottery, predictions, predictionsHistory);
+                const completedHistory = this.ensureCompletedPredictions(
+                    predictionsHistory,
+                    lottery,
+                    cachedPredictions,
+                    predictions
+                );
+                this.validateCloudData(lottery, predictions, completedHistory);
 
                 const cache = {
                     savedAt: new Date().toISOString(),
@@ -178,7 +268,7 @@ const DataLoader = {
                     data: {
                         lottery_history: lottery,
                         ai_predictions: predictions,
-                        predictions_history: predictionsHistory
+                        predictions_history: completedHistory
                     }
                 };
 
